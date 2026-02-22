@@ -1,0 +1,30 @@
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binary and coverage
+*.test
+*.out
+*.coverprofile
+
+# Build output & package directories
+/bin/
+/pkg/
+/_build/
+/dist/
+/tmp/
+
+
+# IDEs, editors and OS files
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
+
+# Environment files
+.env
+.envrc
