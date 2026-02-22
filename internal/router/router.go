@@ -25,7 +25,8 @@ func New(cfg config.Config) http.Handler {
 	r.Use(middleware.Recovery)
 
 	// Blog wiring
-	blogService := blog.NewService()
+	fr := &blog.FileReader{}
+	blogService := blog.NewService(fr)
 	blogHandler := blog.NewHandler(blogService)
 
 	r.Get("/health", healthHandler)
