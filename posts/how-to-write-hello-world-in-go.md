@@ -2,6 +2,8 @@
 title: "How to Write 'Hello, World!' in Go"
 date: 2024-06-01
 tags: ["Go", "Programming", "Tutorial"]
+slug: "how-to-write-hello-world-in-go"
+description: "Learn how to write and run a simple 'Hello, World!' program in Go with this step-by-step guide."
 
 author:
     name: "Leroy"

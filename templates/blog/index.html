@@ -6,16 +6,7 @@
 			name="viewport"
 			content="width=device-width,initial-scale=1"
 		/>
-		<title>
-			{{ if .Title }}{{ .Title }}{{ else }}Leroy Blog{{ end }}
-		</title>
-
-		<!-- Tailwind CDN -->
-		<!-- <script src="https://cdn.tailwindcss.com"></script> -->
-		<!-- <script src="https://cdn.tailwindcss.com?plugin=typography"></script> -->
-		<!-- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> -->
-		<!-- Tailwind Typography plugin (CDN) -->
-		<!-- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/typography@0.5.9/dist/typography.min.js"></script> -->
+		<title>Leroy Blog</title>
 
 		<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
 		<script>
@@ -44,24 +35,23 @@
 		</header>
 
 		<main class="max-w-4xl mx-auto px-4 py-12">
-			<article class="dark:prose-invert">
-				<header>
-					<h1 class="text-4xl font-bold">{{ .Title }}</h1>
+			<h1 class="text-4xl font-bold mb-8">Blog Posts</h1>
+			<ul class="space-y-4">
+				{{ range .Posts }}
+				<li>
+					<a
+						href="/posts/{{ .Slug }}"
+						class="text-xl font-semibold text-blue-500 hover:underline"
+					>
+						{{ .Title }}
+					</a>
 					<p class="text-sm text-gray-500">
-						Authored by
-						<a
-							href="mailto:{{ .Author.Email }}"
-							class="text-blue-500 hover:underline"
-						>
-							{{ .Author.Name }}
-						</a>
-						on {{ .Date }}
+						Authored by {{ .Author.Name }} on {{ .Date }}
 					</p>
-				</header>
-				<section class="prose lg:prose-xl mt-8">
-					{{ .Content }}
-				</section>
-			</article>
+					<p class="text-gray-700">{{ .Description }}</p>
+				</li>
+				{{ end }}
+			</ul>
 		</main>
 
 		<footer class="border-t">

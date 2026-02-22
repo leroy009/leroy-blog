@@ -9,6 +9,7 @@ import (
 
 type Config struct {
 	Port         string
+	PostsDir     string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
@@ -17,6 +18,7 @@ type Config struct {
 func Load() Config {
 	return Config{
 		Port:         getEnv("PORT", "8080"),
+		PostsDir:     getEnv("POSTS_DIR", "posts"),
 		ReadTimeout:  getEnvDuration("READ_TIMEOUT", 5*time.Second),
 		WriteTimeout: getEnvDuration("WRITE_TIMEOUT", 10*time.Second),
 		IdleTimeout:  getEnvDuration("IDLE_TIMEOUT", 60*time.Second),

@@ -1,16 +1,34 @@
 package blog
 
-import "html/template"
+import (
+	"html/template"
+	"time"
+)
 
 type Post struct {
-	Author  Author        `json:"author"`
-	Date    string        `json:"date"`
-	Slug    string        `json:"slug"`
-	Title   string        `json:"title"`
-	Content template.HTML `json:"content"` // Updated to template.HTML for safe HTML rendering
+	Author      Author        `json:"author"`
+	Date        time.Time     `json:"date"`
+	Slug        string        `json:"slug"`
+	Title       string        `json:"title"`
+	Description string        `json:"description"`
+	Tags        []string      `json:"tags"`
+	Content     template.HTML `json:"content"` // Updated to template.HTML for safe HTML rendering
 }
 
 type Author struct {
 	Name  string `json:"name"`
 	Email string `json:"email"`
+}
+
+type PostMetadata struct {
+	Author      Author    `json:"author"`
+	Date        time.Time `json:"date"`
+	Slug        string    `json:"slug"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Tags        []string  `json:"tags"`
+}
+
+type PostMetadataCollection struct {
+	Posts []PostMetadata
 }

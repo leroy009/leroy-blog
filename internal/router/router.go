@@ -24,19 +24,33 @@ func New(cfg config.Config) http.Handler {
 	r.Use(middleware.Logging)
 	r.Use(middleware.Recovery)
 
+	r.Get("/health", healthHandler)
+
 	// Blog wiring
-	fr := &blog.FileReader{}
+	fr := blog.NewFileReader(cfg.PostsDir)
 	blogService := blog.NewService(fr)
 	blogHandler := blog.NewHandler(blogService)
 
-	r.Get("/health", healthHandler)
-	r.Get("/posts/{slug}", blogHandler.GetPost)
+	r.Group("/posts", func(posts *Router) {
+		posts.Get("/", blogHandler.PostIndexHandler)
+		posts.Get("/{slug}", blogHandler.GetPostHandler)
+	})
 
 	return r
 }
 
 func (r *Router) ServeHTTP(w http.ResponseWriter, req *http.Request) {
 	r.mux.ServeHTTP(w, req)
+}
+
+// Group creates a sub-router with a shared prefix, inheriting current middleware.
+func (r *Router) Group(prefix string, fn func(*Router)) {
+	sub := &Router{
+		mux:         r.mux,
+		prefix:      r.prefix + prefix,
+		middlewares: append([]Middleware{}, r.middlewares...),
+	}
+	fn(sub)
 }
 
 func (r *Router) Use(m Middleware) {
@@ -55,6 +69,18 @@ func (r *Router) handle(method, pattern string, handler http.Handler) {
 
 func (r *Router) Get(pattern string, h http.HandlerFunc) {
 	r.handle("GET", pattern, h)
+}
+
+func (r *Router) Post(pattern string, h http.HandlerFunc) {
+	r.handle("POST", pattern, h)
+}
+
+func (r *Router) Put(pattern string, h http.HandlerFunc) {
+	r.handle("PUT", pattern, h)
+}
+
+func (r *Router) Delete(pattern string, h http.HandlerFunc) {
+	r.handle("DELETE", pattern, h)
 }
 
 func healthHandler(w http.ResponseWriter, r *http.Request) {

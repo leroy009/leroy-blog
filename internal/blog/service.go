@@ -4,9 +4,9 @@ import (
 	"bytes"
 	"errors"
 	"html/template"
-	"io"
 	"log"
 	"os"
+	"path/filepath"
 
 	"github.com/adrg/frontmatter"
 	"github.com/yuin/goldmark"
@@ -14,17 +14,24 @@ import (
 )
 
 type Service struct {
-	reader   SlugReader
+	reader   PostReader
 	markdown goldmark.Markdown
 }
 
-type SlugReader interface {
-	Read(slug string) (string, error) // Updated to return raw content as a string
+type PostReader interface {
+	Read(slug string) ([]byte, error)
+	Query() (*PostMetadataCollection, error)
 }
 
-type FileReader struct{}
+type FileReader struct {
+	dir string
+}
 
-func NewService(reader SlugReader) *Service {
+func NewFileReader(dir string) *FileReader {
+	return &FileReader{dir: dir}
+}
+
+func NewService(reader PostReader) *Service {
 	markdown := goldmark.New(
 		goldmark.WithExtensions(
 			highlighting.NewHighlighting(
@@ -39,49 +46,74 @@ func NewService(reader SlugReader) *Service {
 }
 
 func (s *Service) GetPostBySlug(slug string) (*Post, error) {
-	content, err := s.reader.Read(slug)
+	raw, err := s.reader.Read(slug)
 	if err != nil {
 		return nil, errors.New("post not found")
 	}
 
 	var post Post
-	remainingContent, err := frontmatter.Parse(bytes.NewBufferString(content), &post)
+	remaining, err := frontmatter.Parse(bytes.NewReader(raw), &post)
 	if err != nil {
 		log.Printf("error parsing frontmatter: %v", err)
 		return nil, errors.New("error parsing frontmatter")
 	}
-	post.Content = template.HTML(remainingContent) // Store the remaining content as template.HTML
-
+	post.Content = template.HTML(remaining)
 	return &post, nil
 }
 
 func (s *Service) GetPostBySlugWithMarkdown(slug string) (*Post, error) {
-	post, err := s.GetPostBySlug(slug) // Reuse GetPostBySlug to fetch the post
+	raw, err := s.reader.Read(slug)
 	if err != nil {
-		return nil, err
+		return nil, errors.New("post not found")
+	}
+
+	var post Post
+	remaining, err := frontmatter.Parse(bytes.NewReader(raw), &post)
+	if err != nil {
+		log.Printf("error parsing frontmatter: %v", err)
+		return nil, errors.New("error parsing frontmatter")
 	}
 
 	var buf bytes.Buffer
-	err = s.markdown.Convert([]byte(post.Content), &buf)
+	if err = s.markdown.Convert(remaining, &buf); err != nil {
+		return nil, err
+	}
+	post.Content = template.HTML(buf.String())
+	return &post, nil
+}
+
+func (fr *FileReader) Read(slug string) ([]byte, error) {
+	return os.ReadFile(filepath.Join(fr.dir, slug+".md"))
+}
+
+func (fr *FileReader) Query() (*PostMetadataCollection, error) {
+	filenames, err := filepath.Glob(filepath.Join(fr.dir, "*.md"))
 	if err != nil {
 		return nil, err
 	}
 
-	post.Content = template.HTML(buf.String()) // Update the post content with rendered markdown as template.HTML
-	return post, nil
+	var collection PostMetadataCollection
+	for _, filename := range filenames {
+		f, err := os.Open(filename)
+		if err != nil {
+			log.Printf("error opening file %s: %v", filename, err)
+			continue
+		}
+
+		var meta PostMetadata
+		_, err = frontmatter.Parse(f, &meta)
+		f.Close()
+		if err != nil {
+			log.Printf("error parsing frontmatter in file %s: %v", filename, err)
+			continue
+		}
+
+		collection.Posts = append(collection.Posts, meta)
+	}
+
+	return &collection, nil
 }
 
-func (fr *FileReader) Read(slug string) (string, error) {
-	f, err := os.Open("posts/" + slug + ".md") // Use relative path to the 'md' folder
-	if err != nil {
-		return "", err
-	}
-	defer f.Close()
-
-	b, err := io.ReadAll(f)
-	if err != nil {
-		return "", err
-	}
-
-	return string(b), nil // Return raw content as a string
+func (s *Service) QueryMetadata() (*PostMetadataCollection, error) {
+	return s.reader.Query()
 }

@@ -2,6 +2,8 @@
 title: "How to Cook Pap"
 date: 2024-06-01
 tags: ["Cooking", "Pap", "Tutorial"]
+slug: "how-to-cook-pap"
+description: "Learn how to cook pap, a traditional maize meal porridge, with this easy step-by-step guide."
 
 author:
     name: "Leroy"
