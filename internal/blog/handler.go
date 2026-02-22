@@ -2,14 +2,16 @@ package blog
 
 import (
 	"bytes"
-	"log"
+	"log/slog"
 	"net/http"
+	"os"
 	"text/template"
 )
 
 type Handler struct {
 	service *Service
-	tmpls   *Tmpls // Added Tmpls field to store preloaded templates
+	tmpls   *Tmpls
+	logger  *slog.Logger
 }
 
 type Tmpls struct {
@@ -17,19 +19,24 @@ type Tmpls struct {
 	Post      *template.Template
 }
 
-func NewHandler(service *Service) *Handler {
+func NewHandler(service *Service, logger *slog.Logger) *Handler {
+	logger = logger.With("component", "handler")
+
 	postTmpl, err := template.ParseFiles("templates/blog/post.html")
 	if err != nil {
-		log.Fatalf("error loading template: %v", err)
+		logger.Error("error loading template", "template", "post", "error", err)
+		os.Exit(1)
 	}
 
 	indexTmpl, err := template.ParseFiles("templates/blog/index.html")
 	if err != nil {
-		log.Fatalf("error loading template: %v", err)
+		logger.Error("error loading template", "template", "index", "error", err)
+		os.Exit(1)
 	}
 
 	return &Handler{
 		service: service,
+		logger:  logger,
 		tmpls: &Tmpls{
 			PostIndex: indexTmpl,
 			Post:      postTmpl,
@@ -47,8 +54,8 @@ func (h *Handler) GetPostHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	err = h.tmpls.Post.Execute(&buf, post)
-	if err != nil {
+	if err = h.tmpls.Post.Execute(&buf, post); err != nil {
+		h.logger.Error("template execution error", "template", "post", "slug", slug, "error", err)
 		http.Error(w, "error rendering template", http.StatusInternalServerError)
 		return
 	}
@@ -63,9 +70,8 @@ func (h *Handler) PostIndexHandler(w http.ResponseWriter, r *http.Request) {
 	}
 
 	var buf bytes.Buffer
-	err = h.tmpls.PostIndex.Execute(&buf, posts)
-	if err != nil {
-		log.Printf("template execution error: %v", err)
+	if err = h.tmpls.PostIndex.Execute(&buf, posts); err != nil {
+		h.logger.Error("template execution error", "template", "post-index", "error", err)
 		http.Error(w, "error rendering template", http.StatusInternalServerError)
 		return
 	}

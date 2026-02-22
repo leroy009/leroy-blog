@@ -10,6 +10,8 @@ import (
 type Config struct {
 	Port         string
 	PostsDir     string
+	LogFile      string
+	LogLevel     string
 	ReadTimeout  time.Duration
 	WriteTimeout time.Duration
 	IdleTimeout  time.Duration
@@ -19,6 +21,8 @@ func Load() Config {
 	return Config{
 		Port:         getEnv("PORT", "8080"),
 		PostsDir:     getEnv("POSTS_DIR", "posts"),
+		LogFile:      getEnv("LOG_FILE", ""),
+		LogLevel:     getEnv("LOG_LEVEL", "info"),
 		ReadTimeout:  getEnvDuration("READ_TIMEOUT", 5*time.Second),
 		WriteTimeout: getEnvDuration("WRITE_TIMEOUT", 10*time.Second),
 		IdleTimeout:  getEnvDuration("IDLE_TIMEOUT", 60*time.Second),

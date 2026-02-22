@@ -1,6 +1,7 @@
 package router
 
 import (
+	"log/slog"
 	"net/http"
 
 	"github.com/leroy009/leroy-blog/internal/blog"
@@ -16,7 +17,7 @@ type Router struct {
 	middlewares []Middleware
 }
 
-func New(cfg config.Config) http.Handler {
+func New(cfg config.Config, logger *slog.Logger) http.Handler {
 	r := &Router{
 		mux: http.NewServeMux(),
 	}
@@ -24,12 +25,16 @@ func New(cfg config.Config) http.Handler {
 	r.Use(middleware.Logging)
 	r.Use(middleware.Recovery)
 
+	// serve static files
+	fs := http.FileServer(http.Dir("./static"))
+	r.mux.Handle("/static/", http.StripPrefix("/static/", fs))
+
 	r.Get("/health", healthHandler)
 
 	// Blog wiring
-	fr := blog.NewFileReader(cfg.PostsDir)
-	blogService := blog.NewService(fr)
-	blogHandler := blog.NewHandler(blogService)
+	fr := blog.NewFileReader(cfg.PostsDir, logger)
+	blogService := blog.NewService(fr, logger)
+	blogHandler := blog.NewHandler(blogService, logger)
 
 	r.Group("/posts", func(posts *Router) {
 		posts.Get("/", blogHandler.PostIndexHandler)

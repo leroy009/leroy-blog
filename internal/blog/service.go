@@ -4,7 +4,7 @@ import (
 	"bytes"
 	"errors"
 	"html/template"
-	"log"
+	"log/slog"
 	"os"
 	"path/filepath"
 
@@ -16,6 +16,7 @@ import (
 type Service struct {
 	reader   PostReader
 	markdown goldmark.Markdown
+	logger   *slog.Logger
 }
 
 type PostReader interface {
@@ -24,14 +25,15 @@ type PostReader interface {
 }
 
 type FileReader struct {
-	dir string
+	dir    string
+	logger *slog.Logger
 }
 
-func NewFileReader(dir string) *FileReader {
-	return &FileReader{dir: dir}
+func NewFileReader(dir string, logger *slog.Logger) *FileReader {
+	return &FileReader{dir: dir, logger: logger.With("component", "file-reader")}
 }
 
-func NewService(reader PostReader) *Service {
+func NewService(reader PostReader, logger *slog.Logger) *Service {
 	markdown := goldmark.New(
 		goldmark.WithExtensions(
 			highlighting.NewHighlighting(
@@ -42,6 +44,7 @@ func NewService(reader PostReader) *Service {
 	return &Service{
 		reader:   reader,
 		markdown: markdown,
+		logger:   logger.With("component", "service"),
 	}
 }
 
@@ -54,7 +57,7 @@ func (s *Service) GetPostBySlug(slug string) (*Post, error) {
 	var post Post
 	remaining, err := frontmatter.Parse(bytes.NewReader(raw), &post)
 	if err != nil {
-		log.Printf("error parsing frontmatter: %v", err)
+		s.logger.Error("error parsing frontmatter", "slug", slug, "error", err)
 		return nil, errors.New("error parsing frontmatter")
 	}
 	post.Content = template.HTML(remaining)
@@ -70,7 +73,7 @@ func (s *Service) GetPostBySlugWithMarkdown(slug string) (*Post, error) {
 	var post Post
 	remaining, err := frontmatter.Parse(bytes.NewReader(raw), &post)
 	if err != nil {
-		log.Printf("error parsing frontmatter: %v", err)
+		s.logger.Error("error parsing frontmatter", "slug", slug, "error", err)
 		return nil, errors.New("error parsing frontmatter")
 	}
 
@@ -96,7 +99,7 @@ func (fr *FileReader) Query() (*PostMetadataCollection, error) {
 	for _, filename := range filenames {
 		f, err := os.Open(filename)
 		if err != nil {
-			log.Printf("error opening file %s: %v", filename, err)
+			fr.logger.Error("error opening post file", "file", filename, "error", err)
 			continue
 		}
 
@@ -104,7 +107,7 @@ func (fr *FileReader) Query() (*PostMetadataCollection, error) {
 		_, err = frontmatter.Parse(f, &meta)
 		f.Close()
 		if err != nil {
-			log.Printf("error parsing frontmatter in file %s: %v", filename, err)
+			fr.logger.Error("error parsing frontmatter", "file", filename, "error", err)
 			continue
 		}
 
