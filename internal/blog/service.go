@@ -3,10 +3,12 @@ package blog
 import (
 	"bytes"
 	"errors"
+	"html/template"
 	"io"
+	"log"
 	"os"
-	"time"
 
+	"github.com/adrg/frontmatter"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
 )
@@ -42,13 +44,15 @@ func (s *Service) GetPostBySlug(slug string) (*Post, error) {
 		return nil, errors.New("post not found")
 	}
 
-	return &Post{
-		Author:  "Leroy",
-		Date:    time.Now().Format("January 2, 2006"),
-		Slug:    slug,
-		Title:   "Title from file",
-		Content: content,
-	}, nil
+	var post Post
+	remainingContent, err := frontmatter.Parse(bytes.NewBufferString(content), &post)
+	if err != nil {
+		log.Printf("error parsing frontmatter: %v", err)
+		return nil, errors.New("error parsing frontmatter")
+	}
+	post.Content = template.HTML(remainingContent) // Store the remaining content as template.HTML
+
+	return &post, nil
 }
 
 func (s *Service) GetPostBySlugWithMarkdown(slug string) (*Post, error) {
@@ -63,7 +67,7 @@ func (s *Service) GetPostBySlugWithMarkdown(slug string) (*Post, error) {
 		return nil, err
 	}
 
-	post.Content = buf.String() // Update the post content with rendered markdown
+	post.Content = template.HTML(buf.String()) // Update the post content with rendered markdown as template.HTML
 	return post, nil
 }
 

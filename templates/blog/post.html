@@ -47,8 +47,15 @@
 			<article class="dark:prose-invert">
 				<header>
 					<h1 class="text-4xl font-bold">{{ .Title }}</h1>
+					{{with .Author}}
 					<p class="text-sm text-gray-500">
-						By {{ .Author }} on {{ .Date }}
+						Authored by
+						<a
+							href="mailto:{{ .Email }}"
+							class="text-blue-500 hover:underline"
+							>{{ .Name }}</a
+						>
+						{{end}} on {{ .Date }}
 					</p>
 				</header>
 				<section class="prose lg:prose-xl mt-8">

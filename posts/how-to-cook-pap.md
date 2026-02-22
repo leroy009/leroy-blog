@@ -1,4 +1,14 @@
-# How to Cook Pap
+---
+title: "How to Cook Pap"
+date: 2024-06-01
+tags: ["Cooking", "Pap", "Tutorial"]
+
+author:
+    name: "Leroy"
+    email: "hello@leroy.com"
+---
+
+<!-- # How to Cook Pap -->
 
 Pap is a traditional porridge made from maize meal, commonly enjoyed in many African countries. Here's a simple guide to cook pap:
 

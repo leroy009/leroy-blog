@@ -1,4 +1,14 @@
-# How to Write "Hello, World!" in Go
+---
+title: "How to Write 'Hello, World!' in Go"
+date: 2024-06-01
+tags: ["Go", "Programming", "Tutorial"]
+
+author:
+    name: "Leroy"
+    email: "hello@leroy.com"
+---
+
+<!-- # How to Write "Hello, World!" in Go -->
 
 Go, also known as Golang, is a statically typed, compiled programming language designed for simplicity and efficiency. Writing a "Hello, World!" program is a great way to get started with Go. In this guide, we will walk you through the steps to write and run your first Go program.
 
