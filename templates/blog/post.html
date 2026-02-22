@@ -1,0 +1,68 @@
+<!DOCTYPE html>
+<html lang="en">
+	<head>
+		<meta charset="utf-8" />
+		<meta
+			name="viewport"
+			content="width=device-width,initial-scale=1"
+		/>
+		<title>
+			{{ if .Title }}{{ .Title }}{{ else }}Leroy Blog{{ end }}
+		</title>
+
+		<!-- Tailwind CDN -->
+		<!-- <script src="https://cdn.tailwindcss.com"></script> -->
+		<!-- <script src="https://cdn.tailwindcss.com?plugin=typography"></script> -->
+		<!-- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script> -->
+		<!-- Tailwind Typography plugin (CDN) -->
+		<!-- <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/typography@0.5.9/dist/typography.min.js"></script> -->
+
+		<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
+		<script>
+			tailwind.config = {
+				darkMode: "class",
+				theme: { extend: {} },
+				plugins: [tailwindTypography],
+			};
+		</script>
+	</head>
+	<body class="bg-gray-50 text-gray-900 antialiased">
+		<header class="bg-white border-b">
+			<div
+				class="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between"
+			>
+				<a href="/" class="text-xl font-semibold"
+					>Leroy Blog</a
+				>
+				<nav class="space-x-4 text-sm text-gray-600">
+					<a href="/" class="hover:text-gray-900">Home</a>
+					<a href="/about" class="hover:text-gray-900"
+						>About</a
+					>
+				</nav>
+			</div>
+		</header>
+
+		<main class="max-w-4xl mx-auto px-4 py-12">
+			<article class="dark:prose-invert">
+				<header>
+					<h1 class="text-4xl font-bold">{{ .Title }}</h1>
+					<p class="text-sm text-gray-500">
+						By {{ .Author }} on {{ .Date }}
+					</p>
+				</header>
+				<section class="prose lg:prose-xl mt-8">
+					{{ .Content }}
+				</section>
+			</article>
+		</main>
+
+		<footer class="border-t">
+			<div
+				class="max-w-4xl mx-auto px-4 py-6 text-sm text-gray-600"
+			>
+				© 2026 Leroy
+			</div>
+		</footer>
+	</body>
+</html>

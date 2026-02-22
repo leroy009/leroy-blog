@@ -1,7 +1,9 @@
 package blog
 
 type Post struct {
-	Slug  string `json:"slug"`
-	Title string `json:"title"`
-	Body  string `json:"body"`
+	Author  string `json:"author"`
+	Date    string `json:"date"`
+	Slug    string `json:"slug"`
+	Title   string `json:"title"`
+	Content string `json:"content"`
 }
