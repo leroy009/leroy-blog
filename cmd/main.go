@@ -9,8 +9,8 @@ import (
 	"syscall"
 	"time"
 
-	"myapp/internal/config"
-	"myapp/internal/router"
+	"github.com/leroy009/leroy-blog/internal/config"
+	"github.com/leroy009/leroy-blog/internal/router"
 )
 
 func main() {

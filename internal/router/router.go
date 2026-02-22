@@ -3,9 +3,9 @@ package router
 import (
 	"net/http"
 
+	"github.com/leroy009/leroy-blog/internal/blog"
 	"github.com/leroy009/leroy-blog/internal/config"
 	"github.com/leroy009/leroy-blog/internal/middleware"
-	"mgithub.com/leroy009/leroy-blog/internal/blog"
 )
 
 type Middleware func(http.Handler) http.Handler
