@@ -9,10 +9,16 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"unicode"
 
 	"github.com/adrg/frontmatter"
 	"github.com/yuin/goldmark"
 	highlighting "github.com/yuin/goldmark-highlighting/v2"
+	gast "github.com/yuin/goldmark/ast"
+	"github.com/yuin/goldmark/parser"
+	"github.com/yuin/goldmark/text"
+
+	"github.com/leroy009/leroy-blog/internal/blog/extension"
 )
 
 type Service struct {
@@ -88,10 +94,14 @@ func (fr *FileReader) Query() (*PostMetadataCollection, error) {
 
 func NewService(reader PostReader, logger *slog.Logger) *Service {
 	markdown := goldmark.New(
+		goldmark.WithParserOptions(
+			parser.WithAutoHeadingID(),
+		),
 		goldmark.WithExtensions(
 			highlighting.NewHighlighting(
 				highlighting.WithStyle("monokai"),
 			),
+			&extension.Aside{},
 		),
 	)
 	return &Service{
@@ -115,15 +125,23 @@ func (s *Service) GetPostBySlugWithMarkdown(slug string) (*Post, error) {
 		return nil, errors.New("post not found")
 	}
 
-	var post Post
-	remaining, err := frontmatter.Parse(bytes.NewReader(raw), &post)
+	var meta PostMetadata
+	remaining, err := frontmatter.Parse(bytes.NewReader(raw), &meta)
 	if err != nil {
 		s.logger.Error("error parsing frontmatter", "slug", slug, "error", err)
 		return nil, errors.New("error parsing frontmatter")
 	}
+	post := Post{PostMetadata: meta}
+
+	// Parse the markdown into an AST so we can walk it before rendering.
+	reader := text.NewReader(remaining)
+	doc := s.markdown.Parser().Parse(reader)
+
+	post.TOC = extractTOC(doc, remaining)
+	post.ReadingTime = readingTime(remaining)
 
 	var buf bytes.Buffer
-	if err = s.markdown.Convert(remaining, &buf); err != nil {
+	if err = s.markdown.Renderer().Render(&buf, remaining, doc); err != nil {
 		return nil, err
 	}
 	post.Content = template.HTML(buf.String())
@@ -137,4 +155,141 @@ func (s *Service) GetPostBySlugWithMarkdown(slug string) (*Post, error) {
 
 func (s *Service) QueryMetadata() (*PostMetadataCollection, error) {
 	return s.reader.Query()
+}
+
+// QueryFiltered returns a paginated, tag-filtered, and text-searched PostIndexView.
+func (s *Service) QueryFiltered(tag, search string, page, pageSize int) (*PostIndexView, error) {
+	all, err := s.reader.Query()
+	if err != nil {
+		return nil, err
+	}
+
+	// collect unique tags from ALL posts (not just filtered)
+	seen := map[string]bool{}
+	var tags []string
+	for _, p := range all.Posts {
+		for _, t := range p.Tags {
+			if !seen[t] {
+				seen[t] = true
+				tags = append(tags, t)
+			}
+		}
+	}
+
+	// filter by tag
+	filtered := all.Posts
+	if tag != "" {
+		filtered = filtered[:0:0]
+		for _, p := range all.Posts {
+			for _, t := range p.Tags {
+				if t == tag {
+					filtered = append(filtered, p)
+					break
+				}
+			}
+		}
+	}
+
+	// filter by search (case-insensitive title + description match)
+	if search != "" {
+		q := strings.ToLower(search)
+		var matched []PostMetadata
+		for _, p := range filtered {
+			if strings.Contains(strings.ToLower(p.Title), q) ||
+				strings.Contains(strings.ToLower(p.Description), q) {
+				matched = append(matched, p)
+			}
+		}
+		filtered = matched
+	}
+
+	total := len(filtered)
+	totalPages := total / pageSize
+	if total%pageSize != 0 {
+		totalPages++
+	}
+	if totalPages == 0 {
+		totalPages = 1
+	}
+	if page < 1 {
+		page = 1
+	}
+	if page > totalPages {
+		page = totalPages
+	}
+
+	start := (page - 1) * pageSize
+	end := start + pageSize
+	if end > total {
+		end = total
+	}
+
+	return &PostIndexView{
+		Posts:      filtered[start:end],
+		Tags:       tags,
+		ActiveTag:  tag,
+		Search:     search,
+		Page:       page,
+		TotalPages: totalPages,
+	}, nil
+}
+
+// extractTOC walks the goldmark AST and collects heading nodes into a TOC slice.
+func extractTOC(doc gast.Node, source []byte) []TOCItem {
+	var toc []TOCItem
+	_ = gast.Walk(doc, func(n gast.Node, entering bool) (gast.WalkStatus, error) {
+		if !entering {
+			return gast.WalkContinue, nil
+		}
+		h, ok := n.(*gast.Heading)
+		if !ok {
+			return gast.WalkContinue, nil
+		}
+		id := ""
+		if v, ok := h.AttributeString("id"); ok {
+			if b, ok := v.([]byte); ok {
+				id = string(b)
+			}
+		}
+		toc = append(toc, TOCItem{
+			Level: h.Level,
+			Text:  headingText(h, source),
+			ID:    id,
+		})
+		return gast.WalkSkipChildren, nil
+	})
+	return toc
+}
+
+// headingText extracts the plain text content from a heading node.
+func headingText(h *gast.Heading, source []byte) string {
+	var buf bytes.Buffer
+	for c := h.FirstChild(); c != nil; c = c.NextSibling() {
+		switch t := c.(type) {
+		case *gast.Text:
+			buf.Write(t.Segment.Value(source))
+		case *gast.String:
+			buf.Write(t.Value)
+		}
+	}
+	return buf.String()
+}
+
+// readingTime estimates minutes to read based on an average of 200 wpm.
+func readingTime(src []byte) int {
+	words := 0
+	inWord := false
+	for _, r := range string(src) {
+		if unicode.IsSpace(r) {
+			inWord = false
+		} else if !inWord {
+			words++
+			inWord = true
+		}
+	}
+	mins := words / 200
+	if mins < 1 {
+		mins = 1
+	}
+	return mins
 }

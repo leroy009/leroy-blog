@@ -6,6 +6,7 @@ import (
 	"log/slog"
 	"net/http"
 	"os"
+	"time"
 )
 
 var layout = []string{
@@ -28,8 +29,12 @@ type Tmpls struct {
 func NewHandler(logger *slog.Logger) *Handler {
 	logger = logger.With("component", "pages-handler")
 
+	var tmplFuncs = template.FuncMap{
+		"year": func() int { return time.Now().Year() },
+	}
+
 	parse := func(page string) *template.Template {
-		t, err := template.ParseFiles(append(layout, page)...)
+		t, err := template.New("").Funcs(tmplFuncs).ParseFiles(append(layout, page)...)
 		if err != nil {
 			logger.Error("error loading template", "page", page, "error", err)
 			os.Exit(1)

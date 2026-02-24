@@ -5,7 +5,10 @@ import (
 	"html/template"
 	"log/slog"
 	"net/http"
+	"net/url"
 	"os"
+	"strconv"
+	"time"
 )
 
 var layout = []string{
@@ -25,11 +28,28 @@ type Tmpls struct {
 	Post      *template.Template
 }
 
+var tmplFuncs = template.FuncMap{
+	"add": func(a, b int) int { return a + b },
+	"sub": func(a, b int) int { return a - b },
+	"pageURL": func(tag, search string, page int) string {
+		v := url.Values{}
+		if tag != "" {
+			v.Set("tag", tag)
+		}
+		if search != "" {
+			v.Set("q", search)
+		}
+		v.Set("page", strconv.Itoa(page))
+		return "/posts?" + v.Encode()
+	},
+	"year": func() int { return time.Now().Year() },
+}
+
 func NewHandler(service *Service, logger *slog.Logger) *Handler {
 	logger = logger.With("component", "blog-handler")
 
 	parse := func(page string) *template.Template {
-		t, err := template.ParseFiles(append(layout, page)...)
+		t, err := template.New("").Funcs(tmplFuncs).ParseFiles(append(layout, page)...)
 		if err != nil {
 			logger.Error("error loading template", "page", page, "error", err)
 			os.Exit(1)
@@ -69,12 +89,18 @@ func (h *Handler) GetPostHandler(w http.ResponseWriter, r *http.Request) {
 	h.render(w, h.tmpls.Post, post)
 }
 
+const pageSize = 5
+
 func (h *Handler) PostIndexHandler(w http.ResponseWriter, r *http.Request) {
-	posts, err := h.service.QueryMetadata()
+	tag := r.URL.Query().Get("tag")
+	search := r.URL.Query().Get("q")
+	page, _ := strconv.Atoi(r.URL.Query().Get("page"))
+
+	view, err := h.service.QueryFiltered(tag, search, page, pageSize)
 	if err != nil {
 		http.Error(w, "error fetching posts", http.StatusInternalServerError)
 		return
 	}
 
-	h.render(w, h.tmpls.PostIndex, posts)
+	h.render(w, h.tmpls.PostIndex, view)
 }

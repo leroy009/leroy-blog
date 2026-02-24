@@ -1,9 +1,9 @@
 {{template "base" .}} {{define "title"}}{{if .Title}}{{.Title}} —
 Leroy Blog{{else}}Leroy Blog{{end}}{{end}} {{define "content"}}
 <article class="dark:prose-invert">
-	<header>
+	<header class="mb-8">
 		<h1 class="text-4xl font-bold">{{ .Title }}</h1>
-		<p class="text-sm text-gray-500">
+		<p class="text-sm text-gray-500 mt-2">
 			Authored by
 			<a
 				href="mailto:{{ .Author.Email }}"
@@ -11,9 +11,34 @@ Leroy Blog{{else}}Leroy Blog{{end}}{{end}} {{define "content"}}
 			>
 				{{ .Author.Name }}
 			</a>
-			on {{ .Date }}
+			on {{ .Date.Format "02 Jan 2006" }} &middot; {{
+			.ReadingTime }} min read
 		</p>
 	</header>
-	<section class="prose lg:prose-xl mt-8">{{ .Content }}</section>
+
+	{{ if .TOC }}
+	<nav class="mb-8 p-4 bg-white border rounded-lg">
+		<p
+			class="text-xs font-semibold uppercase tracking-wide text-gray-400 mb-2"
+		>
+			Contents
+		</p>
+		<ul class="space-y-1 text-sm">
+			{{ range .TOC }}
+			<li
+				class="{{ if eq .Level 2 }}pl-0{{ else if eq .Level 3 }}pl-4{{ else }}pl-8{{ end }}"
+			>
+				<a
+					href="#{{ .ID }}"
+					class="text-blue-500 hover:underline"
+					>{{ .Text }}</a
+				>
+			</li>
+			{{ end }}
+		</ul>
+	</nav>
+	{{ end }}
+
+	<section class="prose lg:prose-xl">{{ .Content }}</section>
 </article>
 {{end}}

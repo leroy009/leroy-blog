@@ -1,20 +1,77 @@
 {{template "base" .}} {{define "title"}}Blog — Leroy Blog{{end}}
 {{define "content"}}
-<h1 class="text-4xl font-bold mb-8">Blog Posts</h1>
-<ul class="space-y-4">
-	{{ range .Posts }}
-	<li>
+<h1 class="text-4xl font-bold mb-6">Blog Posts</h1>
+
+{{/* Search + tag filter toolbar */}}
+<div class="mb-8 space-y-3">
+
+	{{/* Search input */}}
+	<form method="get" action="/posts" class="flex gap-2">
+		<input
+			type="text"
+			name="q"
+			value="{{.Search}}"
+			placeholder="Search posts…"
+			class="flex-1 px-4 py-2 border rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-gray-900"
+		/>
+		{{if .ActiveTag}}<input type="hidden" name="tag" value="{{.ActiveTag}}" />{{end}}
+		<button type="submit" class="px-4 py-2 bg-gray-900 text-white text-sm rounded-lg hover:bg-gray-700">Search</button>
+		{{if or .Search .ActiveTag}}
+		<a href="/posts" class="px-4 py-2 border rounded-lg text-sm text-gray-600 hover:bg-gray-100">Clear</a>
+		{{end}}
+	</form>
+
+	{{/* Tag strip — single scrollable row */}}
+	{{if .Tags}}
+	<div class="flex gap-2 overflow-x-auto pb-1 no-scrollbar">
 		<a
-			href="/posts/{{ .Slug }}"
-			class="text-xl font-semibold text-blue-500 hover:underline"
-		>
-			{{ .Title }}
+			href="{{if .Search}}/posts?q={{.Search}}{{else}}/posts{{end}}"
+			class="my-4 shrink-0 px-3 py-1 rounded-full text-xs border {{if eq .ActiveTag ""}}bg-gray-900 text-white border-gray-900{{else}}border-gray-300 text-gray-500 hover:border-gray-900 hover:text-gray-900{{end}}"
+		>All</a>
+		{{range .Tags}}
+		<a
+			href="/posts?tag={{.}}{{if $.Search}}&q={{$.Search}}{{end}}"
+			class="my-4 shrink-0 px-3 py-1 rounded-full text-xs border {{if eq . $.ActiveTag}}bg-gray-900 text-white border-gray-900{{else}}border-gray-300 text-gray-500 hover:border-gray-900 hover:text-gray-900{{end}}"
+		>{{.}}</a>
+		{{end}}
+	</div>
+	{{end}}
+
+</div>
+
+{{/* Post list */}}
+{{if .Posts}}
+<ul class="space-y-6">
+	{{range .Posts}}
+	<li class="border-b pb-6">
+		<a href="/posts/{{.Slug}}" class="text-xl font-semibold text-blue-500 hover:underline">
+			{{.Title}}
 		</a>
-		<p class="text-sm text-gray-500">
-			Authored by {{ .Author.Name }} on {{ .Date }}
+		<p class="text-sm text-gray-500 mt-1">
+			{{.Author.Name}} · {{.Date.Format "02 Jan 2006"}}
+			{{if .Tags}}
+			·
+			{{range .Tags}}<a href="/posts?tag={{.}}" class="hover:underline">{{.}}</a> {{end}}
+			{{end}}
 		</p>
-		<p class="text-gray-700">{{ .Description }}</p>
+		<p class="text-gray-700 mt-1">{{.Description}}</p>
 	</li>
-	{{ end }}
+	{{end}}
 </ul>
+{{else}}
+<p class="text-gray-500">No posts found.</p>
+{{end}}
+
+{{/* Pagination */}}
+{{if gt .TotalPages 1}}
+<div class="flex items-center gap-4 mt-10 text-sm">
+	{{if gt .Page 1}}
+	<a href="{{pageURL .ActiveTag .Search (sub .Page 1)}}" class="px-4 py-2 border rounded hover:bg-gray-100">← Prev</a>
+	{{end}}
+	<span class="text-gray-500">Page {{.Page}} of {{.TotalPages}}</span>
+	{{if lt .Page .TotalPages}}
+	<a href="{{pageURL .ActiveTag .Search (add .Page 1)}}" class="px-4 py-2 border rounded hover:bg-gray-100">Next →</a>
+	{{end}}
+</div>
+{{end}}
 {{end}}
