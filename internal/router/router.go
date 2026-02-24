@@ -7,6 +7,7 @@ import (
 	"github.com/leroy009/leroy-blog/internal/blog"
 	"github.com/leroy009/leroy-blog/internal/config"
 	"github.com/leroy009/leroy-blog/internal/middleware"
+	"github.com/leroy009/leroy-blog/internal/pages"
 )
 
 type Middleware func(http.Handler) http.Handler
@@ -27,9 +28,15 @@ func New(cfg config.Config, logger *slog.Logger) http.Handler {
 
 	// serve static files
 	fs := http.FileServer(http.Dir("./static"))
-	r.mux.Handle("/static/", http.StripPrefix("/static/", fs))
+	r.mux.Handle("GET /static/", http.StripPrefix("/static/", fs))
 
 	r.Get("/health", healthHandler)
+
+	// Pages wiring
+	pagesHandler := pages.NewHandler(logger)
+	r.Get("/", pagesHandler.HomeHandler)
+	r.Get("/about", pagesHandler.AboutHandler)
+	r.Get("/contact", pagesHandler.ContactHandler)
 
 	// Blog wiring
 	fr := blog.NewFileReader(cfg.PostsDir, logger)

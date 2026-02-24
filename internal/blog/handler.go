@@ -2,11 +2,17 @@ package blog
 
 import (
 	"bytes"
+	"html/template"
 	"log/slog"
 	"net/http"
 	"os"
-	"text/template"
 )
+
+var layout = []string{
+	"templates/layout/base.html",
+	"templates/layout/header.html",
+	"templates/layout/footer.html",
+}
 
 type Handler struct {
 	service *Service
@@ -20,28 +26,35 @@ type Tmpls struct {
 }
 
 func NewHandler(service *Service, logger *slog.Logger) *Handler {
-	logger = logger.With("component", "handler")
+	logger = logger.With("component", "blog-handler")
 
-	postTmpl, err := template.ParseFiles("templates/blog/post.html")
-	if err != nil {
-		logger.Error("error loading template", "template", "post", "error", err)
-		os.Exit(1)
-	}
-
-	indexTmpl, err := template.ParseFiles("templates/blog/index.html")
-	if err != nil {
-		logger.Error("error loading template", "template", "index", "error", err)
-		os.Exit(1)
+	parse := func(page string) *template.Template {
+		t, err := template.ParseFiles(append(layout, page)...)
+		if err != nil {
+			logger.Error("error loading template", "page", page, "error", err)
+			os.Exit(1)
+		}
+		return t
 	}
 
 	return &Handler{
 		service: service,
 		logger:  logger,
 		tmpls: &Tmpls{
-			PostIndex: indexTmpl,
-			Post:      postTmpl,
+			PostIndex: parse("templates/blog/index.html"),
+			Post:      parse("templates/blog/post.html"),
 		},
 	}
+}
+
+func (h *Handler) render(w http.ResponseWriter, t *template.Template, data any) {
+	var buf bytes.Buffer
+	if err := t.ExecuteTemplate(&buf, "base", data); err != nil {
+		h.logger.Error("template execution error", "error", err)
+		http.Error(w, "error rendering template", http.StatusInternalServerError)
+		return
+	}
+	buf.WriteTo(w)
 }
 
 func (h *Handler) GetPostHandler(w http.ResponseWriter, r *http.Request) {
@@ -53,13 +66,7 @@ func (h *Handler) GetPostHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var buf bytes.Buffer
-	if err = h.tmpls.Post.Execute(&buf, post); err != nil {
-		h.logger.Error("template execution error", "template", "post", "slug", slug, "error", err)
-		http.Error(w, "error rendering template", http.StatusInternalServerError)
-		return
-	}
-	buf.WriteTo(w)
+	h.render(w, h.tmpls.Post, post)
 }
 
 func (h *Handler) PostIndexHandler(w http.ResponseWriter, r *http.Request) {
@@ -69,11 +76,5 @@ func (h *Handler) PostIndexHandler(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	var buf bytes.Buffer
-	if err = h.tmpls.PostIndex.Execute(&buf, posts); err != nil {
-		h.logger.Error("template execution error", "template", "post-index", "error", err)
-		http.Error(w, "error rendering template", http.StatusInternalServerError)
-		return
-	}
-	buf.WriteTo(w)
+	h.render(w, h.tmpls.PostIndex, posts)
 }

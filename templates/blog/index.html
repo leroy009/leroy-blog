@@ -1,65 +1,20 @@
-<!DOCTYPE html>
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<meta
-			name="viewport"
-			content="width=device-width,initial-scale=1"
-		/>
-		<title>Leroy Blog</title>
-
-		<script src="https://cdn.tailwindcss.com?plugins=typography"></script>
-		<script>
-			tailwind.config = {
-				darkMode: "class",
-				theme: { extend: {} },
-				plugins: [tailwindTypography],
-			};
-		</script>
-	</head>
-	<body class="bg-gray-50 text-gray-900 antialiased">
-		<header class="bg-white border-b">
-			<div
-				class="max-w-4xl mx-auto px-4 py-6 flex items-center justify-between"
-			>
-				<a href="/" class="text-xl font-semibold"
-					>Leroy Blog</a
-				>
-				<nav class="space-x-4 text-sm text-gray-600">
-					<a href="/" class="hover:text-gray-900">Home</a>
-					<a href="/about" class="hover:text-gray-900"
-						>About</a
-					>
-				</nav>
-			</div>
-		</header>
-
-		<main class="max-w-4xl mx-auto px-4 py-12">
-			<h1 class="text-4xl font-bold mb-8">Blog Posts</h1>
-			<ul class="space-y-4">
-				{{ range .Posts }}
-				<li>
-					<a
-						href="/posts/{{ .Slug }}"
-						class="text-xl font-semibold text-blue-500 hover:underline"
-					>
-						{{ .Title }}
-					</a>
-					<p class="text-sm text-gray-500">
-						Authored by {{ .Author.Name }} on {{ .Date }}
-					</p>
-					<p class="text-gray-700">{{ .Description }}</p>
-				</li>
-				{{ end }}
-			</ul>
-		</main>
-
-		<footer class="border-t">
-			<div
-				class="max-w-4xl mx-auto px-4 py-6 text-sm text-gray-600"
-			>
-				© 2026 Leroy
-			</div>
-		</footer>
-	</body>
-</html>
+{{template "base" .}} {{define "title"}}Blog — Leroy Blog{{end}}
+{{define "content"}}
+<h1 class="text-4xl font-bold mb-8">Blog Posts</h1>
+<ul class="space-y-4">
+	{{ range .Posts }}
+	<li>
+		<a
+			href="/posts/{{ .Slug }}"
+			class="text-xl font-semibold text-blue-500 hover:underline"
+		>
+			{{ .Title }}
+		</a>
+		<p class="text-sm text-gray-500">
+			Authored by {{ .Author.Name }} on {{ .Date }}
+		</p>
+		<p class="text-gray-700">{{ .Description }}</p>
+	</li>
+	{{ end }}
+</ul>
+{{end}}
